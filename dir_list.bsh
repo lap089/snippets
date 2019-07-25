@@ -1,0 +1,105 @@
+import java.io.File;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Attr;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import bsh.Interpreter;
+
+
+    static Document document;
+
+    void listItems(String dir, Element root, String deep) {
+
+        File path = new File(dir);
+        File[] list = path.listFiles();
+
+        if (list == null) return;
+
+        for (File f : list) {
+            // check whether it is a directory or a file
+            if (f.isDirectory()) {
+
+                // create element
+                Element dirName = document.createElement("Dir");
+                // set attribute "name" to the element
+                Attr attr = document.createAttribute("name");
+                attr.setValue(f.getName());
+                dirName.setAttributeNode(attr);
+                // attach the element to the parent node
+                root.appendChild(dirName);
+
+                // recursive traverse this directory
+                listItems(f.getAbsolutePath(), dirName, deep + "\t");
+
+            } else {
+
+                // create element
+                Element fileName = document.createElement("File");
+                // set attribute "name" to the element
+                Attr attr = document.createAttribute("name");
+                attr.setValue(f.getName());
+                fileName.setAttributeNode(attr);
+                // attach the element to the parent node
+                root.appendChild(fileName);
+            }
+
+        }
+    }
+
+    print(bsh.args.length);
+
+    if(bsh.args.length != 2) {
+        System.out.println("Please input two arguments: a valid path and a path to write the output XML file");
+        return;
+    }
+
+
+    String dir = bsh.args[0];
+    String outputPath = bsh.args[1];
+    File output = new File("");
+
+    // init xml document builder
+    DocumentBuilderFactory documentFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder documentBuilder = null;
+    try {
+        documentBuilder = documentFactory.newDocumentBuilder();
+
+    document = documentBuilder.newDocument();
+
+    // root element
+    Element root = document.createElement("Directory");
+    // set attribute for element
+    Attr attr = document.createAttribute("path");
+    attr.setValue(dir);
+    root.setAttributeNode(attr);
+
+    document.appendChild(root);
+
+    // start recursively traverse
+    listItems(dir, root, " ");
+
+    // create the xml file
+    //transform the DOM Object to an XML File
+    TransformerFactory transformerFactory = TransformerFactory.newInstance();
+    Transformer transformer = transformerFactory.newTransformer();
+    DOMSource domSource = new DOMSource(document);
+    StreamResult streamResult = new StreamResult(new File(outputPath));
+
+    transformer.transform(domSource, streamResult);
+    } catch (ParserConfigurationException e) {
+        e.printStackTrace();
+    } catch (TransformerConfigurationException e) {
+        e.printStackTrace();
+    } catch (TransformerException e) {
+        e.printStackTrace();
+    }
+
+
